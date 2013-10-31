@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Facial Keypoint Detection</title>
+  <meta name="description" content="">
+  <meta name="author" content="Sai Kiran Vadhi">
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="stylesheet" href="libraries/frameworks/revealjs/css/reveal.min.css">
+  <link rel="stylesheet" href="libraries/frameworks/revealjs/css/theme/solarized.css" id="theme">
+  <link rel="stylesheet" href="libraries/highlighters/highlight.js/css/zenburn.css" id="theme">
+  <!--[if lt IE 9]>
+  <script src="lib/js/html5shiv.js"></script>
+  <![endif]-->  <link rel="stylesheet" href = "assets/css/ribbons.css">
+
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+      <section class='' data-state='' id='slide-1'>
+  <h2>Facial Keypoint Detection</h2>
+  <h3>Case Study, Kaggle Competition</h3>
+
+<p><img src="figure/ImpetusLogo_blackbackground_4inch.gif" alt="Impetus"></p>
+
+<h3>Sai Kiran Vadhi</h3>
+
+</section>
+<section class='' data-state='' id='slide-2'>
+  <h2>Contents</h2>
+  <ul>
+<li>Introduction &amp; Data Exploration</li>
+<li>Gaussian Clustering Algorithm</li>
+<li>Random Forest</li>
+<li>Support Vector Machines</li>
+<li>Output (Predictions)</li>
+</ul>
+
+</section>
+<section>
+   <section class='' data-state=''>
+    <h2>Introduction</h2>
+    <ul>
+<li><p><strong>Facial Keypoint Detection</strong> is an online data mining competition organised by <a href="https://www.kaggle.com/c/facial-keypoints-detection">Kaggle</a>.</p></li>
+<li><p>The goal of the competition is to locate specific keypoints on face images.</p></li>
+</ul>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Introduction &amp; Data Exploration</h3>
+
+<ul>
+<li>Kaggle has provided the competitors with <strong><em>train.csv</em></strong> and <strong><em>test.csv</em></strong> for the competition.</li>
+</ul>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Train.csv</h3>
+
+<pre><code class="r">nrow(training_full_data)
+</code></pre>
+
+<pre><code>## [1] 7049
+</code></pre>
+
+<pre><code class="r">ncol(training_full_data)
+</code></pre>
+
+<pre><code>## [1] 30
+</code></pre>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Train.csv</h3>
+
+<pre><code class="r">colnames(training_full_data)
+</code></pre>
+
+<pre><code>##  [1] &quot;left_eye_center_x&quot;         &quot;left_eye_center_y&quot;        
+##  [3] &quot;right_eye_center_x&quot;        &quot;right_eye_center_y&quot;       
+##  [5] &quot;left_eye_inner_corner_x&quot;   &quot;left_eye_inner_corner_y&quot;  
+##  [7] &quot;left_eye_outer_corner_x&quot;   &quot;left_eye_outer_corner_y&quot;  
+##  [9] &quot;right_eye_inner_corner_x&quot;  &quot;right_eye_inner_corner_y&quot; 
+## [11] &quot;right_eye_outer_corner_x&quot;  &quot;right_eye_outer_corner_y&quot; 
+## [13] &quot;left_eyebrow_inner_end_x&quot;  &quot;left_eyebrow_inner_end_y&quot; 
+## [15] &quot;left_eyebrow_outer_end_x&quot;  &quot;left_eyebrow_outer_end_y&quot; 
+## [17] &quot;right_eyebrow_inner_end_x&quot; &quot;right_eyebrow_inner_end_y&quot;
+## [19] &quot;right_eyebrow_outer_end_x&quot; &quot;right_eyebrow_outer_end_y&quot;
+## [21] &quot;nose_tip_x&quot;                &quot;nose_tip_y&quot;               
+## [23] &quot;mouth_left_corner_x&quot;       &quot;mouth_left_corner_y&quot;      
+## [25] &quot;mouth_right_corner_x&quot;      &quot;mouth_right_corner_y&quot;     
+## [27] &quot;mouth_center_top_lip_x&quot;    &quot;mouth_center_top_lip_y&quot;   
+## [29] &quot;mouth_center_bottom_lip_x&quot; &quot;mouth_center_bottom_lip_y&quot;
+</code></pre>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Train.csv</h3>
+
+<pre><code class="r">str(training_full_data)
+</code></pre>
+
+<pre><code>## &#39;data.frame&#39;:    7049 obs. of  30 variables:
+##  $ left_eye_center_x        : num  66 64.3 65.1 65.2 66.7 ...
+##  $ left_eye_center_y        : num  39 35 34.9 37.3 39.6 ...
+##  $ right_eye_center_x       : num  30.2 29.9 30.9 32 32.2 ...
+##  $ right_eye_center_y       : num  36.4 33.4 34.9 37.3 38 ...
+##  $ left_eye_inner_corner_x  : num  59.6 58.9 59.4 60 58.6 ...
+##  $ left_eye_inner_corner_y  : num  39.6 35.3 36.3 39.1 39.6 ...
+##  $ left_eye_outer_corner_x  : num  73.1 70.7 71 72.3 72.5 ...
+##  $ left_eye_outer_corner_y  : num  40 36.2 36.3 38.4 39.9 ...
+##  $ right_eye_inner_corner_x : num  36.4 36 37.7 37.6 37 ...
+##  $ right_eye_inner_corner_y : num  37.4 34.4 36.3 38.8 39.1 ...
+##  $ right_eye_outer_corner_x : num  23.5 24.5 25 25.3 22.5 ...
+##  $ right_eye_outer_corner_y : num  37.4 33.1 36.6 38 38.3 ...
+##  $ left_eyebrow_inner_end_x : num  57 54 55.7 56.4 57.2 ...
+##  $ left_eyebrow_inner_end_y : num  29 28.3 27.6 30.9 30.7 ...
+##  $ left_eyebrow_outer_end_x : num  80.2 78.6 78.9 77.9 77.8 ...
+##  $ left_eyebrow_outer_end_y : num  32.2 30.4 32.7 31.7 31.7 ...
+##  $ right_eyebrow_inner_end_x: num  40.2 42.7 42.2 41.7 38 ...
+##  $ right_eyebrow_inner_end_y: num  29 26.1 28.1 31 30.9 ...
+##  $ right_eyebrow_outer_end_x: num  16.4 16.9 16.8 20.5 15.9 ...
+##  $ right_eyebrow_outer_end_y: num  29.6 27.1 32.1 29.9 30.7 ...
+##  $ nose_tip_x               : num  44.4 48.2 47.6 51.9 43.3 ...
+##  $ nose_tip_y               : num  57.1 55.7 53.5 54.2 64.9 ...
+##  $ mouth_left_corner_x      : num  61.2 56.4 60.8 65.6 60.7 ...
+##  $ mouth_left_corner_y      : num  80 76.4 73 72.7 77.5 ...
+##  $ mouth_right_corner_x     : num  28.6 35.1 33.7 37.2 31.2 ...
+##  $ mouth_right_corner_y     : num  77.4 76 72.7 74.2 77 ...
+##  $ mouth_center_top_lip_x   : num  43.3 46.7 47.3 50.3 45 ...
+##  $ mouth_center_top_lip_y   : num  72.9 70.3 70.2 70.1 73.7 ...
+##  $ mouth_center_bottom_lip_x: num  43.1 45.5 47.3 51.6 44.2 ...
+##  $ mouth_center_bottom_lip_y: num  84.5 85.5 78.7 78.3 86.9 ...
+</code></pre>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Test.csv</h3>
+
+<pre><code class="r">nrow(test_full_data)
+</code></pre>
+
+<pre><code>## [1] 1783
+</code></pre>
+
+<pre><code class="r">ncol(test_full_data)
+</code></pre>
+
+<pre><code>## [1] 2
+</code></pre>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Test.csv</h3>
+
+<pre><code class="r">summary(test_full_data)
+</code></pre>
+
+<pre><code>##     ImageId        Image          
+##  Min.   :   1   Length:1783       
+##  1st Qu.: 446   Class :character  
+##  Median : 892   Mode  :character  
+##  Mean   : 892                     
+##  3rd Qu.:1338                     
+##  Max.   :1783
+</code></pre>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Training Image Data</h3>
+
+<pre><code class="r">nrow(training_image_data)
+</code></pre>
+
+<pre><code>## [1] 7049
+</code></pre>
+
+<pre><code class="r">ncol(training_image_data)
+</code></pre>
+
+<pre><code>## [1] 9216
+</code></pre>
+
+<ul>
+<li>Where each of the 9216 characters in each row,<br>
+represent the grayscale intensity of each pixel in an image.</li>
+<li>So they represent 96x96 (=9216) grayscale image.</li>
+</ul>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+</section>
+<section>
+   <section class='' data-state=''>
+    <h2>Some Example Images</h2>
+    
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Some Example Images (1/5)</h3>
+
+<p><img src="figure/unnamed-chunk-1.png" alt="plot of chunk unnamed-chunk-1"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Some Example Images (2/5)</h3>
+
+<p><img src="figure/unnamed-chunk-2.png" alt="plot of chunk unnamed-chunk-2"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Some Example Images (3/5)</h3>
+
+<p><img src="figure/unnamed-chunk-3.png" alt="plot of chunk unnamed-chunk-3"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Some Example Images (4/5)</h3>
+
+<p><img src="figure/unnamed-chunk-4.png" alt="plot of chunk unnamed-chunk-4"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Some Example Images (5/5)</h3>
+
+<p><img src="figure/unnamed-chunk-5.png" alt="plot of chunk unnamed-chunk-5"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Legend</h3>
+
+<p><img src="figure/unnamed-chunk-6.png" alt="plot of chunk unnamed-chunk-6"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+</section>
+<section>
+   <section class='' data-state=''>
+    <h3>What is to be done?</h3>
+    <p>From the given data of images and the keypoints of the respecitive images,<br>
+we should predict the keypoints for the images in the test set.</p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Submission.csv</h3>
+
+<ul>
+<li>For the purpose of making a submission file, another file called <em>submission.csv</em> is provided.</li>
+<li>This contains the image id of the images and the points to be predicted for each image.</li>
+<li>Observation from this file:
+
+<ol>
+<li>Not all the images need all the keypoints</li>
+<li>Some need only 4 of the 15 keypoints</li>
+</ol></li>
+</ul>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+</section>
+<section>
+   <section class='' data-state=''>
+    <h3>Initial approaches</h3>
+    <ul>
+<li>Initially I tried creating and using some filters which used to modify the image, like:<br>
+
+<ol>
+<li>Differentiation Filter</li>
+<li>Contrast Filter</li>
+</ol></li>
+</ul>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Normal Image</h3>
+
+<p><img src="figure/unnamed-chunk-7.png" alt="plot of chunk unnamed-chunk-7"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Differentiation Filter</h3>
+
+<p><img src="figure/unnamed-chunk-8.png" alt="plot of chunk unnamed-chunk-8"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Contrast Filter</h3>
+
+<p><img src="figure/unnamed-chunk-9.png" alt="plot of chunk unnamed-chunk-9"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+</section>
+<section>
+   <section class='' data-state=''>
+    <h2>Gaussian Clustering Algorithm</h2>
+    <p>Need for choosing this method:  </p>
+
+<ul>
+<li>We need to look at how presently pattern detection is done in:
+
+<ol>
+<li>Color images</li>
+<li>Videos</li>
+</ol></li>
+</ul>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>In color images</h3>
+
+<p><img src="figure/unnamed-chunk-10.png" alt="plot of chunk unnamed-chunk-10"> </p>
+
+<ul>
+<li>Human skin tone is located on a very narrow region on the chromatic scale.</li>
+</ul>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>In Videos</h3>
+
+<ul>
+<li>In videos also, skin tone detection method can be used if the capturing device is capable of producing colors.</li>
+<li>and if it is in grayscale: motion in the video can be used for detection.</li>
+</ul>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>The challenge</h3>
+
+<ul>
+<li>In our case,<br>
+there is neither color to detect the skin tone,<br>
+nor motion to detect the change in image space.</li>
+<li>So, there was a need to implement a new algorithm which would detect patterns much more efficiently.</li>
+</ul>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Gaussian Clustering Algorithm</h3>
+
+<ul>
+<li>This kind of pattern detection using Gaussian Clusters was first proposed by <strong>KK Sung</strong> in his paper: <a href="http://www.cse.iitb.ac.in/%7Enaveen/MTP/ExampleBasedFaceRecognition.pdf">Example-Based Learning for View-Based Human Face Detection</a></li>
+<li>One of the renowned paper in the field of gray scale image pattern detection with <strong>1948 citations</strong> till date.</li>
+</ul>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Gaussian Clustering Algorithm</h3>
+
+<ul>
+<li>The main advantage of this approach will be explained through the following figures:
+<img src="figure/unnamed-chunk-11.png" alt="plot of chunk unnamed-chunk-11"> </li>
+</ul>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <p><img src="figure/unnamed-chunk-12.png" alt="plot of chunk unnamed-chunk-12"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+</section>
+<section class='' data-state='' id='slide-8'>
+  <h3>Gaussian Clustering Algorithm</h3>
+  <ul>
+<li>We take a database of face images of a specified dimension.</li>
+<li>Each pixel of the image acts one dimension<br>
+so with 25x25 dimension images, we have a 625 dimensional space.</li>
+<li>We project each face image into this image space.</li>
+<li>So, each 25x25 image will be a point in the 625 dimensional space.</li>
+<li>After plotting all face images,<br>
+we choose <em>k</em> number of clusters to be present in the space.</li>
+<li>Then finally, we try to fit <em>k</em> Gaussian clusters upon these 6 clusters that are formed.</li>
+</ul>
+
+</section>
+<section>
+   <section class='' data-state=''>
+    <h3>Pre-processing</h3>
+    <ul>
+<li>The images that are being used for training need to be pre-processed for maintaining uniformity:
+
+<ol>
+<li>Image resizing</li>
+<li>Masking</li>
+<li>Histogram Equalization</li>
+</ol></li>
+</ul>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Image resizing</h3>
+
+<p><img src="figure/unnamed-chunk-13.png" alt="plot of chunk unnamed-chunk-13"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Masking</h3>
+
+<p><img src="figure/unnamed-chunk-14.png" alt="plot of chunk unnamed-chunk-14"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Histogram Equalization</h3>
+
+<p><img src="figure/unnamed-chunk-15.png" alt="plot of chunk unnamed-chunk-15"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+</section>
+<section>
+   <section class='' data-state=''>
+    <h3>Gaussian Clustering</h3>
+    <p>As mentioned previously:</p>
+
+<ul>
+<li><p>These pre-processed images are projected onto the images space and <em>k</em> clusters are formed.
+<img src="figure/unnamed-chunk-16.png" alt="plot of chunk unnamed-chunk-16"> </p></li>
+<li><p>We fit <em>k</em> Gaussians over these <em>k</em> clusters.</p></li>
+</ul>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Gaussian Clustering</h3>
+
+<ul>
+<li>One of the important factor that determines the clustering is the distance measure used.<br></li>
+<li>It is called <strong>Mahalanobis Distance</strong>:
+<img src="figure/mahalanobis.png" alt="Mahalanobis"></li>
+<li>In Gaussian clustering, <em>Mahalanobis distance</em> is used in place of normal <em>Euclidian distance</em>.</li>
+</ul>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Challenge Faced</h3>
+
+<p><img src="figure/mahalanobis.png" alt="Mahalanobis"></p>
+
+<ul>
+<li>When we see the above Mahalanobis distance metric, the <strong>det inverse</strong> which needs to be calculated is causing the problem for the formation of clusters.</li>
+<li>Even if the determinant is tending to <strong><em>0</em></strong>, instead of absolute 0, <strong><em>R</em></strong> is considering it to be 0, because of which formation of Gaussian clusters is not possible.</li>
+<li>This is the crucial step in this Gaussian Clustering method.</li>
+<li>I have tried the <strong>determinant</strong> function of other packages, which were also of not much help.</li>
+<li>So, I had to look out for other methods.</li>
+</ul>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+</section>
+<section class='' data-state='' id='slide-11'>
+  <h3>Looking forward to other methods</h3>
+  <ol>
+<li>Random Forest</li>
+<li>Support Vector Machines</li>
+</ol>
+
+</section>
+<section class='' data-state='' id='slide-12'>
+  <h2>Principal Component Analysis</h2>
+  <ul>
+<li>A crucial step.</li>
+<li>Provided computers with only <em>4 GB</em> of memory, and platforms like R, there was always:<br>
+<em><strong>Error!</strong> Could not allocate enough memory.</em></li>
+<li>So, the number of dimensions which were to be analyzed, had to be reduced by considerable amount.</li>
+<li>PCA was the clear cut solution to this problem.</li>
+<li>In my case, I was able to reduce 9216 dimensions to 150 while retaining more than <strong>90%</strong> of the data.</li>
+</ul>
+
+</section>
+<section>
+   <section class='' data-state=''>
+    <h2>Random Forest</h2>
+    <ul>
+<li>After PCA i.e. reducing the dimensions by considerable amount, I trained the data with random forest.</li>
+<li>An error occured: <em><strong>Error!</strong> NA&#39;s not permitted</em></li>
+<li>So, replaced all missing values in training data set with the mean data of each column.</li>
+<li>And this model was used to predict the keypoints in test data.</li>
+<li>This fetched me an RMSE score of 4.4</li>
+</ul>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h2>Random Forest</h2>
+
+<ul>
+<li>I used Random Forest on a slightly different data where the data with no NA&#39;s (2140 rows) was considered.</li>
+<li>Applying the previously mentioned procedure fetched me an RMSE score of 4.2</li>
+</ul>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+</section>
+<section class='' data-state='' id='slide-14'>
+  <h2>SVM</h2>
+  <ul>
+<li>To find a better regression analysis of the data, <em>Support Vector Machines</em> were chosen.</li>
+<li>Since multivariate SVM was not present, I trained 30 models for each class variable and predicted them.</li>
+<li>This fetched me an <strong>RMSE</strong> score of <em>3.595</em> and current standing in Kaggle leaderboard is <strong><em>21</em></strong> (as on <em>22nd Oct &#39;13</em>).</li>
+</ul>
+
+</section>
+<section>
+   <section class='' data-state=''>
+    <h2>Some Output Predictions</h2>
+    
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Output Predictions (1/5)</h3>
+
+<p><img src="figure/unnamed-chunk-17.png" alt="plot of chunk unnamed-chunk-17"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Output Predictions (2/5)</h3>
+
+<p><img src="figure/unnamed-chunk-18.png" alt="plot of chunk unnamed-chunk-18"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Output Predictions (3/5)</h3>
+
+<p><img src="figure/unnamed-chunk-19.png" alt="plot of chunk unnamed-chunk-19"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Output Predictions (4/5)</h3>
+
+<p><img src="figure/unnamed-chunk-20.png" alt="plot of chunk unnamed-chunk-20"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Output Predictions (5/5)</h3>
+
+<p><img src="figure/unnamed-chunk-21.png" alt="plot of chunk unnamed-chunk-21"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <h3>Legend</h3>
+
+<p><img src="figure/unnamed-chunk-22.png" alt="plot of chunk unnamed-chunk-22"> </p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+</section>
+<section class='' data-state='' id='slide-16'>
+  <h3>Conclusion</h3>
+  <ul>
+<li>Though Gaussian Clustering method was lengthy and cumbersome, its completed implementation would have helped to achieve much better results.</li>
+<li>Due to lack of time, I had to turn to SVM which also worked well when compared to other regressions like random forest.</li>
+</ul>
+
+</section>
+<section>
+   <section class='' data-state=''>
+    
+    <p><img src="figure/sung_1.PNG" alt="Sung 1"></p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <p><img src="figure/sung_2.PNG" alt="Sung 2"></p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <p><img src="figure/sung_3.PNG" alt="Sung 3"></p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+   <section class='' data-state=''>
+    <p><img src="figure/sung_4.PNG" alt="Sung 4"></p>
+
+    <aside class='notes'>
+      
+    </aside>
+   </section>
+</section>
+    </div>
+  </div>
+</body>
+  <script src="libraries/frameworks/revealjs/lib/js/head.min.js"></script>
+  <script src="libraries/frameworks/revealjs/js/reveal.min.js"></script>
+  <script>
+  // Full list of configuration options available here:
+  // https://github.com/hakimel/reveal.js#configuration
+  Reveal.initialize({
+    controls: true,
+    progress: true,
+    history: true,
+    center: true,
+    theme: Reveal.getQueryHash().theme || 'solarized', 
+    transition: Reveal.getQueryHash().transition || 'cube', 
+    dependencies: [
+    // Cross-browser shim that fully implements classList -
+    // https://github.com/eligrey/classList.js/
+      { src: 'libraries/frameworks/revealjs/lib/js/classList.js', condition: function() { return !document.body.classList;}},
+      // Zoom in and out with Alt+click
+      { src: 'libraries/frameworks/revealjs/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+      // Speaker notes
+      { src: 'libraries/frameworks/revealjs/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } },
+      // Remote control your reveal.js presentation using a touch device
+      //{ src: 'libraries/frameworks/revealjs/plugin/remotes/remotes.js', async: true, condition: function() { return !!document.body.classList; } }
+      ]
+  });
+  </script>  <!-- LOAD HIGHLIGHTER JS FILES -->
+<script src="libraries/highlighters/highlight.js/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+<!-- DONE LOADING HIGHLIGHTER JS FILES -->
+ 
+
+</html>
